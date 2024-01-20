@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+
+    # flower:
+    #     image: mher/flower
+    #     ports:
+    #         - 5555:5555
+    #     environment:
+    #         - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+            
+    # rabbitmq:
+    #     image: rabbitmq:management
+    #     container_name: rabbitmq
+    #     ports:
+    #         - 5672:5672
+    #         - 15672:15672
+
+    redis: 
+        image: redis:5.0.1
+
+    django:
+        container_name: django
+        build:
+            context: .
+        command: python manage.py runserver 0.0.0.0:8000
+        volumes:
+            - .:/usr/src/app/
+        ports:
+            - 8000:8000
+        environment:
+            - DEBUG=1
+            - SECRET_KEY="django-insecure-*66mnrst$0=l!dot#dban)dyxmbteveuo##kmdb9thad%ir0vr"
+            - ALLOWED_HOSTS=localhost,127.0.0.1 
+        depends_on:
+            - redis
+
+    celery:
+        container_name: celery1
+        build:
+            context: .
+        command: celery --app=sleety worker -l INFO -B 
+        volumes:
+            - .:/usr/src/app/
+        environment:
+            - DEBUG=1
+            - SECRET_KEY="django-insecure-*66mnrst$0=l!dot#dban)dyxmbteveuo##kmdb9thad%ir0vr"
+            - ALLOWED_HOSTS=localhost, 127.0.0.1 
+        depends_on:
+            - redis
+            - django
+            #rabbitmq
+
+    # command: celery --app=sleety worker --hostname=celeryWorker1@%h -l INFO -Q tasks,dead_letter -E -B
+
+
+    # celery2:
+    #     container_name: celery2
+    #     build:
+    #         context: ./celeryworker
+    #         dockerfile: Dockerfile
+    #     command: celery -A celerytask worker --loglevel=INFO -Q queue2
+    #     volumes:
+    #         - ./celeryworker:/usr/src/app/
+    #     depends_on:
+    #         - redis
+    #         - django
